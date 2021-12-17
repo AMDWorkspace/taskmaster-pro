@@ -43,16 +43,11 @@ var saveTasks = function() {
 };
 
 var auditTask = function(taskEl) {
-
   // get date from task element
   var date = $(taskEl).find("span").text().trim();
 
-  console.log(date);
-
   // convert to moment object at 5:00pm
   var time = moment(date, "L").set("hour", 17);
-
-  console.log(time);
 
   // remove any old classes from element
   $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
@@ -60,8 +55,7 @@ var auditTask = function(taskEl) {
   // apply new class if task is near/over due date
   if (moment().isAfter(time)) {
     $(taskEl).addClass("list-group-item-danger");
-  } 
-  else if (Math.abs(moment().diff(time, "days")) <= 2) {
+  } else if (Math.abs(moment().diff(time, "days")) <= 2) {
     $(taskEl).addClass("list-group-item-warning");
   }
 };
@@ -74,24 +68,24 @@ $(".card .list-group").sortable({
   tolerance: "pointer",
   helper: "clone",
   activate: function(event, ui) {
-    console.log(ui);
+    $(this).addClass("dropover");
+    $(".bottom-trash").addClass("bottom-trash-drag");
   },
   deactivate: function(event, ui) {
-    console.log(ui);
+    $(this).removeClass("dropover");
+    $(".bottom-trash").removeClass("bottom-trash-drag");
   },
   over: function(event) {
-    console.log(event);
+    $(event.target).addClass("dropover-active");
   },
   out: function(event) {
-    console.log(event);
+    $(event.target).removeClass("dropover-active");
   },
   update: function() {
     var tempArr = [];
 
     // loop over current set of children in sortable list
-    $(this)
-      .children()
-      .each(function() {
+    $(this).children().each(function() {
         // save values in temp array
         tempArr.push({
           text: $(this).find("p").text().trim(),
@@ -100,16 +94,11 @@ $(".card .list-group").sortable({
       });
 
     // trim down list's ID to match object property
-    var arrName = $(this)
-      .attr("id")
-      .replace("list-", "");
+    var arrName = $(this).attr("id").replace("list-", "");
 
     // update array on tasks object and save
     tasks[arrName] = tempArr;
     saveTasks();
-  },
-  stop: function(event) {
-    $(this).removeClass("dropover");
   }
 });
 
@@ -120,12 +109,14 @@ $("#trash").droppable({
   drop: function(event, ui) {
     // remove dragged element from the dom
     ui.draggable.remove();
+    $(".bottom-trash").removeClass("bottom-trash-active");
   },
   over: function(event, ui) {
     console.log(ui);
+    $(".bottom-trash").addClass("bottom-trash-active");
   },
   out: function(event, ui) {
-    console.log(ui);
+    $(".bottom-trash").removeClass("bottom-trash-active");
   }
 });
 
@@ -148,7 +139,7 @@ $("#task-form-modal").on("shown.bs.modal", function() {
 });
 
 // save button in modal was clicked
-$("#task-form-modal .btn-primary").click(function() {
+$("#task-form-modal .btn-save").click(function() {
   // get form values
   var taskText = $("#modalTaskDescription").val();
   var taskDate = $("#modalDueDate").val();
@@ -172,9 +163,7 @@ $("#task-form-modal .btn-primary").click(function() {
 // task text was clicked
 $(".list-group").on("click", "p", function() {
   // get current text of p element
-  var text = $(this)
-    .text()
-    .trim();
+  var text = $(this).text().trim();
 
   // replace p element with a new textarea
   var textInput = $("<textarea>").addClass("form-control").val(text);
@@ -198,9 +187,7 @@ $(".list-group").on("blur", "textarea", function() {
   saveTasks();
 
   // recreate p element
-  var taskP = $("<p>")
-    .addClass("m-1")
-    .text(text);
+  var taskP = $("<p>").addClass("m-1").text(text);
 
   // replace textarea with new content
   $(this).replaceWith(taskP);
@@ -209,15 +196,10 @@ $(".list-group").on("blur", "textarea", function() {
 // due date was clicked
 $(".list-group").on("click", "span", function() {
   // get current text
-  var date = $(this)
-    .text()
-    .trim();
+  var date = $(this).text().trim();
 
   // create new input element
-  var dateInput = $("<input>")
-    .attr("type", "text")
-    .addClass("form-control")
-    .val(date);
+  var dateInput = $("<input>").attr("type", "text").addClass("form-control").val(date);
   $(this).replaceWith(dateInput);
 
   // enable jquery ui date picker
@@ -263,3 +245,10 @@ $("#remove-tasks").on("click", function() {
 
 // load tasks for the first time
 loadTasks();
+
+// audit task due dates every 30 minutes
+setInterval(function() {
+  $(".card .list-group-item").each(function() {
+    auditTask($(this));
+  });
+}, 1800000);
